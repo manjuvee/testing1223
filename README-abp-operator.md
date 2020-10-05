@@ -86,6 +86,39 @@ This will build and push respective images as
 
 **e.** The tool also generates the **rbac role** and saves the respective configuration in the `config/rbac` folder. The configuration is based on the annotations found in the code.
 
+## Manual steps till ibm-events-operator is part of the common services.
+
+**a.** Clone the abp-event-operator project
+
+```
+    git clone git@github.ibm.com:mhub/ibm-events-operator.git
+```
+
+**b.** Navigate to the project
+
+```
+    cd ibm-events-operator
+```
+
+**c.** Follow the Readme of the ibm events operator for the below steps:
+```
+     https://github.ibm.com/mhub/ibm-events-operator/blob/master/README.md
+     1. Install the Common Services Operator
+     2. Add pull secrets
+     3. Update the Common Services registry
+```
+
+**d.** Update the Common Services registry Config
+
+```
+oc patch operandconfig \
+-n ibm-common-services \
+common-service \
+--type=json \
+-p '[ {"op":"add","path":"/spec/services/-","value":{"name":"ibm-events-operator","spec":{"operandRequest" : {}}}} ]'
+
+```
+
 ## Troubleshooting
 
 - If you notice the below error while building the operator -
