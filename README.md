@@ -58,7 +58,7 @@ Server Version: 4.6.1
 Kubernetes Version: v1.19.0+d59ce34
 ```
 
-## Add `IBM Cloud Pak for Automation` Operators to the catalog
+### Add `IBM Cloud Pak for Automation` Operators to the catalog
 
 1. Create a [project](https://docs.openshift.com/container-platform/4.6/applications/projects/working-with-projects.html) into which the `IBM Cloud Pak for Automation` will be installed. Ensure the environment variable is exported for forward use
 
@@ -104,7 +104,7 @@ Kubernetes Version: v1.19.0+d59ce34
       oc set data secret/pull-secret -n openshift-config --from-file=.dockerconfigjson
       ```
       e. Try oc get nodes. Wait till all the nodes arrive at the Ready Status.
-    
+
       f. Once all the nodes are Ready, re-check your pod status. All the pods should be running now.
 
 3. Add the `IBM Common Services` operators to the Openshift Operator Hub catalog
