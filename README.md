@@ -58,7 +58,7 @@ Server Version: 4.6.1
 Kubernetes Version: v1.19.0+d59ce34
 ```
 
-### Add `IBM Cloud Pak for Automation` Operators to the catalog
+## Add `IBM Cloud Pak for Automation` Operators to the catalog
 
 1. Create a [project](https://docs.openshift.com/container-platform/4.6/applications/projects/working-with-projects.html) into which the `IBM Cloud Pak for Automation` will be installed. Ensure the environment variable is exported for forward use
 
@@ -81,7 +81,7 @@ Kubernetes Version: v1.19.0+d59ce34
     oc create secret docker-registry ibm-entitlement-key --docker-server=$IMG_REG_HOST --docker-username=$IMG_REG_USER --docker-password=$IMG_REG_PASSWORD -n $ABP_PROJECT
     ```
 
-    ## OR
+    ### OR
     Add the image pull secret ibm-entitlement-key as part of the Global pull-secret
 
       a. Run below command. This will create a .dockerconfigjson file in your current directory.
