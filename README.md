@@ -14,7 +14,7 @@ Alternatively, you can try the [install-demo.sh](install-demo.sh) script. The sc
 - Access to images for `IBM Cloud Pak for Automation` from the IBM Cloud Container Registry
     - ABP developers use images from the build pipelines in regsitry: `us.icr.io` - [Retrieve your API key](https://cloud.ibm.com/docs/account?topic=account-userapikey#create_user_key) or [Request Access](https://github.ibm.com/automation-base-pak/abp-project-requests/issues/new?assignees=abpbuild,+dnastaci&labels=access+request&template=request-read-access-to-abp-container-images.md&title=%5BRequest+read+access+to+ABP+container+images%5D)
     - ABP consumers use images promoted to staging in registry: `cp.stg.icr.io`
- 
+
 Set the following environment variables, where the value of `IMG_REG_PASSWORD` should be set to the `API Key` obtained above.
   ```
   export IMG_REG_HOST=us.icr.io
@@ -67,20 +67,45 @@ Kubernetes Version: v1.19.0+d59ce34
     oc new-project $ABP_PROJECT
     ```
 
-2. Create an image pull secret called `ibm-entitlement-key` for the cluster to be able to pull the images from the container registry. We'll have to create the key in both the projects:  
+2. Create an image pull secret called `ibm-entitlement-key` for the cluster to be able to pull the images from the container registry. We'll have to create the key in both the projects:
     - `openshift-marketplace` to be able to initialize the `CatalogSource` that provides the Openshift Operator Catalog with the operators of `IBM Cloud Pak for Automation` (and)
     - the project in which `IBM Cloud Pak for Automation` is being installed
 
     ```
     oc create secret docker-registry ibm-entitlement-key --docker-server=$IMG_REG_HOST --docker-username=$IMG_REG_USER --docker-password=$IMG_REG_PASSWORD -n openshift-marketplace
     oc secrets link default ibm-entitlement-key --for=pull -n openshift-marketplace
-    
+
     oc create secret docker-registry stg-key --docker-server=$ZEN_IMG_REG_HOST --docker-username=$ZEN_IMG_REG_USER --docker-password=$ZEN_IMG_REG_PASSWORD -n openshift-marketplace
     oc secrets link default stg-key --for=pull -n openshift-marketplace
-    
+
     oc create secret docker-registry ibm-entitlement-key --docker-server=$IMG_REG_HOST --docker-username=$IMG_REG_USER --docker-password=$IMG_REG_PASSWORD -n $ABP_PROJECT
     ```
 
+    ## OR
+    Add the image pull secret ibm-entitlement-key as part of the Global pull-secret
+
+      a. Run below command. This will create a .dockerconfigjson file in your current directory.
+      ```
+      oc extract secret/pull-secret -n openshift-config --to=.
+      ```
+      b.Encode your API key, using the below command
+      ```
+      printf "iamapikey:My_API_KEY" | base64
+      ```
+      c. Take a backup of the .dockerconfigjson and then add the following snippet to the .dockerconfigjson file :
+      ```
+      "us.icr.io": {
+        "auth": "The_encoded_API_Key_you_got_in_step_3",
+        "email": "your_ibm_email_id"
+      }
+      ```
+      d. Update the data keys by running the below command
+      ```
+      oc set data secret/pull-secret -n openshift-config --from-file=.dockerconfigjson
+      ```
+      e. Try oc get nodes. Wait till all the nodes arrive at the Ready Status.
+      f. Once all the nodes are Ready, re-check your pod status. All the pods should be running now.
+      
 3. Add the `IBM Common Services` operators to the Openshift Operator Hub catalog
 
     ```sh
@@ -101,10 +126,10 @@ Kubernetes Version: v1.19.0+d59ce34
     EOF
     ```
 
-    **Verify:**  
-    
+    **Verify:**
+
     ```
-    $ oc get pods -n openshift-marketplace | grep opencloud-operators  
+    $ oc get pods -n openshift-marketplace | grep opencloud-operators
     opencloud-operators-59fc5 1/1 Running 0 53s
     ```
 
@@ -126,8 +151,8 @@ Kubernetes Version: v1.19.0+d59ce34
 	EOF
     ```
 
-    **Verify:**  
-    
+    **Verify:**
+
     ```
     $ oc get pods -n openshift-marketplace | grep ibm-cp-data-operator-catalog
     ibm-cp-data-operator-catalog-89fc5 1/1 Running 0 42s
@@ -154,10 +179,10 @@ Kubernetes Version: v1.19.0+d59ce34
     EOF
     ```
 
-    **Verify:**  
-    
+    **Verify:**
+
     ```
-    $ oc get pods -n openshift-marketplace | grep abp-operators  
+    $ oc get pods -n openshift-marketplace | grep abp-operators
     abp-operators-sz64q 1/1 Running 0 32s
     ```
 
@@ -226,9 +251,9 @@ This can be done either via the `Red Hat Openshift Cluster Console` or by direct
           |_ Install
   ```
 
-  **Verify:** 
+  **Verify:**
 
-  Check the status of the Installed Operator: 
+  Check the status of the Installed Operator:
 
     ```
     Red Hat Openshift Container Platform Cluster Administrator Console
@@ -260,7 +285,7 @@ EOF
 
 	```
 	oc -n ibm-common-services patch opreg common-service --type='json' -p='[{"op": "add", "path": "/spec/operators/0", "value": {"channel": "v1.0", "name": "ibm-cp-data-operator", "namespace": "ibm-common-services", "packageName": "ibm-cp-data-operator", "scope": "public", "sourceName": "ibm-cp-data-operator-catalog", "sourceNamespace": "openshift-marketplace" } }]'
-	
+
 	oc -n ibm-common-services patch opcon common-service --type='json' -p='[{"op": "add", "path": "/spec/services/0", "value": {"name": "ibm-cp-data-operator", "spec": {}}}]'
 	```
 
@@ -269,7 +294,7 @@ EOF
 	```
   oc create secret docker-registry ibm-entitlement-key --docker-server=$ZEN_IMG_REG_HOST --docker-username=$ZEN_IMG_REG_USER --docker-password=$ZEN_IMG_REG_PASSWORD -n ibm-common-services
 	oc secrets link ibm-cp-data-operator-serviceaccount ibm-entitlement-key --for=pull -n ibm-common-services
-	
+
   oc -n ibm-common-services delete $(oc get pod -n ibm-common-services -l app.kubernetes.io/managed-by=ibm-cp-data-operator,app.kubernetes.io/name=ibm-cp-data-operator -o name)
 	```
 
@@ -287,7 +312,7 @@ EOF
           |_ Create
   ```
 
-  **Verify:** 
+  **Verify:**
 
   ```
   $ oc get pods -n $ABP_PROJECT | grep abp-kafka-kafka
@@ -296,7 +321,7 @@ EOF
   abp-kafka-kafka-2         2/2     Running   0    110s
   ```
 
-- Wait for the pods to stand up. 
+- Wait for the pods to stand up.
 
     ```
     $ oc get pods -n $ABP_PROJECT | grep kafka
@@ -308,7 +333,7 @@ EOF
     $ oc secrets link kafka-connect-cluster-connect ibm-entitlement-key --for=pull
     ```
 
-- Delete `kafka-connect-cluster-connect` pod to restart with Secrets and Refresh Pods again. Change directory to `abp-deploy` and run 
+- Delete `kafka-connect-cluster-connect` pod to restart with Secrets and Refresh Pods again. Change directory to `abp-deploy` and run
 
     ```
     $ oc delete pod -l app.kubernetes.io/name=kafka-connect
@@ -321,12 +346,12 @@ EOF
   ```
   $ oc get routes
   ```
-  
-  and proceed to the `abp-ui-route`/basepakui in your browser. 
+
+  and proceed to the `abp-ui-route`/basepakui in your browser.
 
 ## Install Open Data Hub Operator
 
-1. Create a [project](https://docs.openshift.com/container-platform/4.6/applications/projects/working-with-projects.html) into which the `Kubeflow` will be installed. 
+1. Create a [project](https://docs.openshift.com/container-platform/4.6/applications/projects/working-with-projects.html) into which the `Kubeflow` will be installed.
 
     ```
     oc new-project kubeflow
@@ -345,8 +370,8 @@ EOF
             |_ Install
     ```
 
-3. Create the `kfDef` resource that will create instances of both `Kubeflow` and `KfServing`  
-  
+3. Create the `kfDef` resource that will create instances of both `Kubeflow` and `KfServing`
+
     ```
     apiVersion: kfdef.apps.kubeflow.org/v1
     kind: KfDef
@@ -467,13 +492,13 @@ EOF
           uri: 'https://github.com/IBM/manifests/archive/master.tar.gz'
       version: master
     ```
-  
-  **Verify:**   
-  
+
+  **Verify:**
+
   - Ensure all the pods are running:
 
       ```
-      $ oc get pods -n kubeflow  
+      $ oc get pods -n kubeflow
       ```
 
 ## Cleanup
@@ -491,7 +516,7 @@ EOF
             |_ Delete All Instances
     ```
 
-2.  In your Namespace/Project under Installed operators, delete all the operators that are installed Namespace Scoped. Any operators on the project which are installed on "**All Namespaces**" should not be deleted. 
+2.  In your Namespace/Project under Installed operators, delete all the operators that are installed Namespace Scoped. Any operators on the project which are installed on "**All Namespaces**" should not be deleted.
 
 3.  Under **Administration** go to view the Custom Resource Definitions
     - Go to CatalogSource, under Instances delete **abp-operators** (may be called abp-catalog) and **opencloud-operators**
@@ -501,8 +526,8 @@ EOF
 
 5.  Delete **ibm-entitlement-key** secret from the **openshift-marketplace** namespace
 
-**Note:** Before you can install again using install-demo.sh please change your environment variables 
-`ABPDEMO_PROJECT`, `TMPDIR` which are used by the script. Failing to change these may result in older environments being stood up. 
+**Note:** Before you can install again using install-demo.sh please change your environment variables
+`ABPDEMO_PROJECT`, `TMPDIR` which are used by the script. Failing to change these may result in older environments being stood up.
 
 ### Uninstall/Clean Up Script
 
