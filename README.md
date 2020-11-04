@@ -105,7 +105,6 @@ Kubernetes Version: v1.19.0+d59ce34
       ```
       e. Try oc get nodes. Wait till all the nodes arrive at the Ready Status.
 
-      f. Once all the nodes are Ready, re-check your pod status. All the pods should be running now.
 
 3. Add the `IBM Common Services` operators to the Openshift Operator Hub catalog
 
