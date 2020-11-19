@@ -17,12 +17,15 @@ Alternatively, you can try the [install-demo.sh](install-demo.sh) script. The sc
        - `worker:3, cpu:16, ram:32`
 - Red Hat Openshift Container Platform [CLI](https://docs.openshift.com/container-platform/4.6/cli_reference/openshift_cli/getting-started-cli.html)
 - Access to images for `IBM Automation Foundation` from the IBM Cloud Container Registry
-    - IAF developers use images from the build pipelines in registry: `us.icr.io` 
+    - IAF developers use images from the build pipelines in registry: `us.icr.io`
       - [Retrieve your API key](https://cloud.ibm.com/docs/account?topic=account-userapikey#create_user_key) or [Request Access](https://github.ibm.com/automation-base-pak/abp-project-requests/issues/new?assignees=abpbuild,+dnastaci&labels=access+request&template=request-read-access-to-abp-container-images.md&title=%5BRequest+read+access+to+ABP+container+images%5D)
     - IAF consumers use images promoted to staging in registry: `cp.stg.icr.io`. The access can be obtained following instructions [here](https://github.ibm.com/alchemy-registry/image-iam/pull/866#issuecomment-24741021).
- 
+
   **Note:** If you want to use the `IBM Automation Foundation` images from any other container registry, you will have to obtain the credentials to [access the registry](https://docs.openshift.com/container-platform/4.5/openshift_images/managing_images/using-image-pull-secrets.html#images-allow-pods-to-reference-images-from-secure-registries_using-image-pull-secrets)
-- The install of IAF currently depends on `Zen` packages and these packages come from `cp.stg.icr.io` (IBM Cloud Container Registry - Staging).  
+- The install of IAF currently depends on `Zen` packages and these packages come from `cp.stg.icr.io` (IBM Cloud Container Registry - Staging).
+- The install of Redis Sentinel currently depends on `IBM Operator for Redis` packages and these packages come from `cp.icr.io` (IBM Cloud Container Registry).
+  - Get an IBM Cloud Container Registry entitelment key here: https://myibm.ibm.com/products-services/containerlibrary.
+  - Once you have a IBM Cloud Container Registry entitelment key upload it to the global Image Pull Secret (IPS) following [the steps in the end of the doc](ImageMirrorAndGlobalIPS.md)
 - Login to Openshift Cluster using [oc](https://docs.openshift.com/container-platform/4.6/cli_reference/openshift_cli/getting-started-cli.html#cli-logging-in_cli-developer-commands) tools. Typically, the following form:
   ```
   oc login --token=<OC_TOKEN> --server=<OC_SERVER_URL>
@@ -43,7 +46,7 @@ Alternatively, you can try the [install-demo.sh](install-demo.sh) script. The sc
   oc create -f toolbox.yaml
   ```
   **NOTE:** For development, the below step is currently required. There is an alternate approach of using the `latest-dev` tag that needs to be documented.
-- Setup the required `ImageContentSourcePolicy` and global Image Pull Secret (IPS) following [these steps](ImageMirrorAndGlobalIPS.md).  
+- Setup the required `ImageContentSourcePolicy` and global Image Pull Secret (IPS) following [these steps](ImageMirrorAndGlobalIPS.md).
 
 ## Add `IBM Automation Foundation` Operators to the catalog
 
@@ -54,30 +57,30 @@ Alternatively, you can try the [install-demo.sh](install-demo.sh) script. The sc
     oc new-project $ABP_PROJECT
     ```
 
-2. **(Optional): Skip the step if a global Image Pull Secret (IPS) is configured for IAF images**  
-  Set the following environment variables with registry access detailes obtained for IAF in prerequisites.  
+2. **(Optional): Skip the step if a global Image Pull Secret (IPS) is configured for IAF images**
+  Set the following environment variables with registry access detailes obtained for IAF in prerequisites.
 
-    
+
     ```
     export IMG_REG_HOST=<REGISTRY HOST>
     export IMG_REG_USER=<REGISTRY USER>
     export IMG_REG_PASSWORD=<PASSWORD | API_KEY>
     ```
 
-3. **(Optional): Skip the step if a global Image Pull Secret (IPS) is configured for IAF images**  
-  Create an image pull secret called `ibm-entitlement-key` for the cluster to be able to pull the images from the container registry. We'll have to create the key in both the projects:  
+3. **(Optional): Skip the step if a global Image Pull Secret (IPS) is configured for IAF images**
+  Create an image pull secret called `ibm-entitlement-key` for the cluster to be able to pull the images from the container registry. We'll have to create the key in both the projects:
     - `openshift-marketplace` to be able to initialize the `CatalogSource` that provides the Openshift Operator Catalog with the operators of `IBM Automation Foundation` (and)
     - the project in which `IBM Automation Foundation` is being installed
 
     ```
     oc create secret docker-registry ibm-entitlement-key --docker-server=$IMG_REG_HOST --docker-username=$IMG_REG_USER --docker-password=$IMG_REG_PASSWORD -n openshift-marketplace
     oc secrets link default ibm-entitlement-key --for=pull -n openshift-marketplace
-    
+
     oc create secret docker-registry ibm-entitlement-key --docker-server=$IMG_REG_HOST --docker-username=$IMG_REG_USER --docker-password=$IMG_REG_PASSWORD -n $ABP_PROJECT
     ```
 
 4. Set the following environment variables with registry access detailes obtained for Zen images in prerequisites.
-    
+
     ```
     export ZEN_IMG_REG_HOST=cp.stg.icr.io
     export ZEN_IMG_REG_USER=cp
@@ -97,7 +100,7 @@ Alternatively, you can try the [install-demo.sh](install-demo.sh) script. The sc
    oc new-project ibm-common-services
    oc create secret docker-registry ibm-entitlement-key --docker-server=$ZEN_IMG_REG_HOST --docker-username=$ZEN_IMG_REG_USER --docker-password=$ZEN_IMG_REG_PASSWORD -n ibm-common-services
    ```
-  
+
 7. Add the `IBM Common Services` operators to the Openshift Operator Hub catalog
 
     ```sh
@@ -115,10 +118,10 @@ Alternatively, you can try the [install-demo.sh](install-demo.sh) script. The sc
     EOF
     ```
 
-    **Verify:**  
-    
+    **Verify:**
+
     ```
-    $ oc get pods -n openshift-marketplace | grep opencloud-operators  
+    $ oc get pods -n openshift-marketplace | grep opencloud-operators
     opencloud-operators-59fc5 1/1 Running 0 53s
     ```
 
@@ -140,15 +143,15 @@ Alternatively, you can try the [install-demo.sh](install-demo.sh) script. The sc
     EOF
     ```
 
-    **Verify:**  
-    
+    **Verify:**
+
     ```
     $ oc get pods -n openshift-marketplace | grep ibm-cp-data-operator-catalog
     ibm-cp-data-operator-catalog-89fc5 1/1 Running 0 42s
     ```
 
 5. Add the `IBM Automation Foundation` operators to the Openshift Operator Hub catalog
-    
+
     **Note:** Consumers of ABP using the staging registry will use `image: cp.stg.icr.io/cp/abp-catalog:0.0.8` (where `0.0.8` is the sprint 8 driver tag)
 
     ```sh
@@ -166,12 +169,41 @@ Alternatively, you can try the [install-demo.sh](install-demo.sh) script. The sc
     EOF
     ```
 
-    **Verify:**  
-    
+    **Verify:**
+
     ```
-    $ oc get pods -n openshift-marketplace | grep abp-operators  
+    $ oc get pods -n openshift-marketplace | grep abp-operators
     abp-operators-sz64q 1/1 Running 0 32s
     ```
+
+
+6. Add the `Zen` operators to the Openshift Operator Hub catalog
+
+    ```sh
+    cat <<EOF | oc apply -f -
+    apiVersion: operators.coreos.com/v1alpha1
+    kind: CatalogSource
+    metadata:
+       name: ibm-operator-catalog
+       namespace: openshift-marketplace
+    spec:
+       displayName: "IBM Operator Catalog"
+       publisher: IBM
+       sourceType: grpc
+       image: docker.io/ibmcom/ibm-operator-catalog
+       updateStrategy:
+         registryPoll:
+           interval: 45m
+    EOF
+    ```
+
+    **Verify:**
+
+    ```
+    $ oc get pods -n openshift-marketplace | grep ibm-operator-catalog
+    ibm-operator-catalog-nghtl  1/1 Running 0 81m
+    ```
+
 
 ## Install `IBM Cloud Pak for Automation`
 
@@ -233,9 +265,9 @@ This can be done either via the `Red Hat Openshift Cluster Console` or by direct
           |_ Install
   ```
 
-  **Verify:** 
+  **Verify:**
 
-  Check the status of the Installed Operator: 
+  Check the status of the Installed Operator:
 
     ```
     Red Hat Openshift Container Platform Cluster Administrator Console
@@ -275,13 +307,13 @@ EOF
           |_ Create
   ```
 
-- Run the below command to apply the demo cartridge CR yaml. The `democartridge_v1_abpdemo.yaml` should be available under the `abp-deploy` folder. 
+- Run the below command to apply the demo cartridge CR yaml. The `democartridge_v1_abpdemo.yaml` should be available under the `abp-deploy` folder.
 
   `oc apply -f democartridge_v1_abpdemo.yaml`
 
 **Note:** Zen is installed by default when the democartridge_v1_abpdemo.yaml is applied. To skip the Zen deployment, you can set `zen: false` to the CR `spec`.
 
-  **Verify:** 
+  **Verify:**
 
   ```
   $ oc get pods -n $ABP_PROJECT | grep abp-kafka-kafka
@@ -295,8 +327,8 @@ EOF
   ```
   $ oc get routes
   ```
-  
-  and proceed to the `abp-ui-route`/basepakui in your browser. 
+
+  and proceed to the `abp-ui-route`/basepakui in your browser.
 
 
 ## Zen Service & dashboard
@@ -308,12 +340,12 @@ a. [OPTIONAL] Run the following command to check the status of the Zen Service d
   ```
   oc get cpdservice -n ibm-common-services abp-zen-cpdservice --output="jsonpath={.status} {'\n'} "
   ```
-b. Under `ibm-common-services` project, go to **Networking > Routes** to reach the zen dashboard url. 
+b. Under `ibm-common-services` project, go to **Networking > Routes** to reach the zen dashboard url.
 
 
 ## Install Open Data Hub Operator
 
-1. Create a [project](https://docs.openshift.com/container-platform/4.6/applications/projects/working-with-projects.html) into which the `Kubeflow` will be installed. 
+1. Create a [project](https://docs.openshift.com/container-platform/4.6/applications/projects/working-with-projects.html) into which the `Kubeflow` will be installed.
 
     ```
     oc new-project kubeflow
@@ -332,8 +364,8 @@ b. Under `ibm-common-services` project, go to **Networking > Routes** to reach t
             |_ Install
     ```
 
-3. Create the `kfDef` resource that will create instances of both `Kubeflow` and `KfServing`  
-  
+3. Create the `kfDef` resource that will create instances of both `Kubeflow` and `KfServing`
+
     ```
     apiVersion: kfdef.apps.kubeflow.org/v1
     kind: KfDef
@@ -454,13 +486,13 @@ b. Under `ibm-common-services` project, go to **Networking > Routes** to reach t
           uri: 'https://github.com/IBM/manifests/archive/master.tar.gz'
       version: master
     ```
-  
-  **Verify:**   
-  
+
+  **Verify:**
+
   - Ensure all the pods are running:
 
       ```
-      $ oc get pods -n kubeflow  
+      $ oc get pods -n kubeflow
       ```
 
 ## Cleanup
@@ -478,7 +510,7 @@ b. Under `ibm-common-services` project, go to **Networking > Routes** to reach t
             |_ Delete All Instances
     ```
 
-2.  In your Namespace/Project under Installed operators, delete all the operators that are installed Namespace Scoped. Any operators on the project which are installed on "**All Namespaces**" should not be deleted. 
+2.  In your Namespace/Project under Installed operators, delete all the operators that are installed Namespace Scoped. Any operators on the project which are installed on "**All Namespaces**" should not be deleted.
 
 3.  Under **Administration** go to view the Custom Resource Definitions
     - Go to CatalogSource, under Instances delete **abp-operators** (may be called abp-catalog) and **opencloud-operators**
@@ -499,8 +531,8 @@ b. Under `ibm-common-services` project, go to **Networking > Routes** to reach t
 
 6.  Delete **ibm-entitlement-key** secret from the **openshift-marketplace** namespace
 
-**Note:** Before you can install again using install-demo.sh please change your environment variables 
-`ABPDEMO_PROJECT`, `TMPDIR` which are used by the script. Failing to change these may result in older environments being stood up. 
+**Note:** Before you can install again using install-demo.sh please change your environment variables
+`ABPDEMO_PROJECT`, `TMPDIR` which are used by the script. Failing to change these may result in older environments being stood up.
 
 ### Uninstall/Clean Up Script
 
@@ -515,7 +547,7 @@ To build and push images locally during development, you may need to do the foll
   ```
   <cluster_ip>  console-openshift-console.apps.<cluster_name>.cp.fyre.ibm.com api.<cluster_name>.cp.fyre.ibm.com <cluster_name>.cp.fyre.ibm.com cp-console.apps.<cluster_name>.cp.fyre.ibm.com oauth-openshift.apps.<cluster_name>.cp.fyre.ibm.com
   ```
-  
+
 You can obtain the `<cluster_ip>` via `ping https://console-openshift-console.apps.<cluster_name>.cp.fyre.ibm.com`
 
 - Update your insecure registries under Docker Engine in your Docker preferences
