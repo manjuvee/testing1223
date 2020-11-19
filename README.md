@@ -25,7 +25,7 @@ Alternatively, you can try the [install-demo.sh](install-demo.sh) script. The sc
 - The install of IAF currently depends on `Zen` packages and these packages come from `cp.stg.icr.io` (IBM Cloud Container Registry - Staging).
 - The install of Redis Sentinel currently depends on `IBM Operator for Redis` packages and these packages come from `cp.icr.io` (IBM Cloud Container Registry).
   - Get an IBM Cloud Container Registry entitelment key here: https://myibm.ibm.com/products-services/containerlibrary.
-  - Once you have a IBM Cloud Container Registry entitelment key upload it to the global Image Pull Secret (IPS) following [the steps in the end of the doc](ImageMirrorAndGlobalIPS.md)
+  - Once you have a IBM Cloud Container Registry entitelment key upload it to the global Image Pull Secret (IPS) following [these steps which is at the end of doc link.](ImageMirrorAndGlobalIPS.md)
 - Login to Openshift Cluster using [oc](https://docs.openshift.com/container-platform/4.6/cli_reference/openshift_cli/getting-started-cli.html#cli-logging-in_cli-developer-commands) tools. Typically, the following form:
   ```
   oc login --token=<OC_TOKEN> --server=<OC_SERVER_URL>
