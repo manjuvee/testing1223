@@ -1,6 +1,6 @@
 # abp-deploy
 
-This repository provides the required steps to install `IBM Cloud Pak for Automation`
+This repository provides the required steps to install `IBM Automation Foundation` aka IAF / ABP
 
 Alternatively, you can try the [install-demo.sh](install-demo.sh) script. The script does several additional steps including an install of the [Demo Cartridge](https://github.ibm.com/automation-base-pak/abp-demo-cartridge)
 
@@ -10,29 +10,24 @@ Alternatively, you can try the [install-demo.sh](install-demo.sh) script. The sc
 
 - [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git/)
 - Red Hat Openshift Container Platform - [4.6](https://docs.openshift.com/container-platform/4.6/welcome/index.html) or later
+  - IBM Automation Foundation developers can provision the Red Hat Openshift Container Platform with OCP+ in [Fyre](https://fyre.ibm.com/ocp).
+    - Because of CPU and memory resource requirements, choose the large cluster configuration:
+       - `inf:1, cpu:4, ram:8`
+       - `master:3, cpu:8, ram:16`
+       - `worker:3, cpu:16, ram:32`
 - Red Hat Openshift Container Platform [CLI](https://docs.openshift.com/container-platform/4.6/cli_reference/openshift_cli/getting-started-cli.html)
-- Access to images for `IBM Cloud Pak for Automation` from the IBM Cloud Container Registry
-    - ABP developers use images from the build pipelines in regsitry: `us.icr.io` - [Retrieve your API key](https://cloud.ibm.com/docs/account?topic=account-userapikey#create_user_key) or [Request Access](https://github.ibm.com/automation-base-pak/abp-project-requests/issues/new?assignees=abpbuild,+dnastaci&labels=access+request&template=request-read-access-to-abp-container-images.md&title=%5BRequest+read+access+to+ABP+container+images%5D)
-    - ABP consumers use images promoted to staging in registry: `cp.stg.icr.io`
+- Access to images for `IBM Automation Foundation` from the IBM Cloud Container Registry
+    - IAF developers use images from the build pipelines in registry: `us.icr.io` 
+      - [Retrieve your API key](https://cloud.ibm.com/docs/account?topic=account-userapikey#create_user_key) or [Request Access](https://github.ibm.com/automation-base-pak/abp-project-requests/issues/new?assignees=abpbuild,+dnastaci&labels=access+request&template=request-read-access-to-abp-container-images.md&title=%5BRequest+read+access+to+ABP+container+images%5D)
+    - IAF consumers use images promoted to staging in registry: `cp.stg.icr.io`. The access can be obtained following instructions [here](https://github.ibm.com/alchemy-registry/image-iam/pull/866#issuecomment-24741021).
  
-Set the following environment variables, where the value of `IMG_REG_PASSWORD` should be set to the `API Key` obtained above.
-  ```
-  export IMG_REG_HOST=us.icr.io
-  export IMG_REG_USER=iamapikey
-  export IMG_REG_PASSWORD=<PASSWORD | API_KEY>
-  ```
-**Note:** If you want to use the `IBM Cloud Pak for Automation` images from any other container registry, you will have to obtain the credentials to [access the registry](https://docs.openshift.com/container-platform/4.5/openshift_images/managing_images/using-image-pull-secrets.html#images-allow-pods-to-reference-images-from-secure-registries_using-image-pull-secrets) and set them in the environment variables (as above)
-
-- The install currently depends on `Zen` packages and as these packages come from a different image registry (IBM Cloud Container Registry - Staging). The access can be obtained from [here](https://github.ibm.com/alchemy-registry/image-iam/pull/866#issuecomment-24741021). We'll need the following environment variables set with the right values.
-  ```
-  export ZEN_IMG_REG_HOST=cp.stg.icr.io
-  export ZEN_IMG_REG_USER=cp
-  export ZEN_IMG_REG_PASSWORD=<PASSWORD | API_KEY>
-  ```
+  **Note:** If you want to use the `IBM Automation Foundation` images from any other container registry, you will have to obtain the credentials to [access the registry](https://docs.openshift.com/container-platform/4.5/openshift_images/managing_images/using-image-pull-secrets.html#images-allow-pods-to-reference-images-from-secure-registries_using-image-pull-secrets)
+- The install of IAF currently depends on `Zen` packages and these packages come from `cp.stg.icr.io` (IBM Cloud Container Registry - Staging).  
 - Login to Openshift Cluster using [oc](https://docs.openshift.com/container-platform/4.6/cli_reference/openshift_cli/getting-started-cli.html#cli-logging-in_cli-developer-commands) tools. Typically, the following form:
   ```
   oc login --token=<OC_TOKEN> --server=<OC_SERVER_URL>
   ```
+  **NOTE:** If you're using the OCP UI, this can be obtained via the "Copy Login Command" option under the top right drop-down menu.
 - Run the below commands to configure the ceph storage :
   ```
   git clone https://github.com/rook/rook.git
@@ -47,41 +42,63 @@ Set the following environment variables, where the value of `IMG_REG_PASSWORD` s
   oc create -f ./csi/cephfs/pvc.yaml
   oc create -f toolbox.yaml
   ```
-- Setup the required `ImageContentSourcePolicy` and global Image Pull Secret (IPS) following [these steps](ImageMirrorAndGlobalIPS.md).
+  **NOTE:** For development, the below step is currently required. There is an alternate approach of using the `latest-dev` tag that needs to be documented.
+- Setup the required `ImageContentSourcePolicy` and global Image Pull Secret (IPS) following [these steps](ImageMirrorAndGlobalIPS.md).  
 
-### (Optional) Validate the prerequisites
+## Add `IBM Automation Foundation` Operators to the catalog
 
-```
-$ oc version
-Client Version: openshift-clients-4.5.0-202006231303.p0-13-gd7f3ccf9a
-Server Version: 4.6.1
-Kubernetes Version: v1.19.0+d59ce34
-```
-
-## Add `IBM Cloud Pak for Automation` Operators to the catalog
-
-1. Create a [project](https://docs.openshift.com/container-platform/4.6/applications/projects/working-with-projects.html) into which the `IBM Cloud Pak for Automation` will be installed. Ensure the environment variable is exported for forward use
+1. Create a [project](https://docs.openshift.com/container-platform/4.6/applications/projects/working-with-projects.html) into which the `IBM Automation Foundation` will be installed. Ensure the environment variable is exported for forward use
 
     ```
     export ABP_PROJECT=acme-abp
     oc new-project $ABP_PROJECT
     ```
 
-2. Create an image pull secret called `ibm-entitlement-key` for the cluster to be able to pull the images from the container registry. We'll have to create the key in both the projects:  
-    - `openshift-marketplace` to be able to initialize the `CatalogSource` that provides the Openshift Operator Catalog with the operators of `IBM Cloud Pak for Automation` (and)
-    - the project in which `IBM Cloud Pak for Automation` is being installed
+2. **(Optional): Skip the step if a global Image Pull Secret (IPS) is configured for IAF images**  
+  Set the following environment variables with registry access detailes obtained for IAF in prerequisites.  
+
+    
+    ```
+    export IMG_REG_HOST=<REGISTRY HOST>
+    export IMG_REG_USER=<REGISTRY USER>
+    export IMG_REG_PASSWORD=<PASSWORD | API_KEY>
+    ```
+
+3. **(Optional): Skip the step if a global Image Pull Secret (IPS) is configured for IAF images**  
+  Create an image pull secret called `ibm-entitlement-key` for the cluster to be able to pull the images from the container registry. We'll have to create the key in both the projects:  
+    - `openshift-marketplace` to be able to initialize the `CatalogSource` that provides the Openshift Operator Catalog with the operators of `IBM Automation Foundation` (and)
+    - the project in which `IBM Automation Foundation` is being installed
 
     ```
     oc create secret docker-registry ibm-entitlement-key --docker-server=$IMG_REG_HOST --docker-username=$IMG_REG_USER --docker-password=$IMG_REG_PASSWORD -n openshift-marketplace
     oc secrets link default ibm-entitlement-key --for=pull -n openshift-marketplace
     
-    oc create secret docker-registry stg-key --docker-server=$ZEN_IMG_REG_HOST --docker-username=$ZEN_IMG_REG_USER --docker-password=$ZEN_IMG_REG_PASSWORD -n openshift-marketplace
-    oc secrets link default stg-key --for=pull -n openshift-marketplace
-    
     oc create secret docker-registry ibm-entitlement-key --docker-server=$IMG_REG_HOST --docker-username=$IMG_REG_USER --docker-password=$IMG_REG_PASSWORD -n $ABP_PROJECT
     ```
 
-3. Add the `IBM Common Services` operators to the Openshift Operator Hub catalog
+4. Set the following environment variables with registry access detailes obtained for Zen images in prerequisites.
+    
+    ```
+    export ZEN_IMG_REG_HOST=cp.stg.icr.io
+    export ZEN_IMG_REG_USER=cp
+    export ZEN_IMG_REG_PASSWORD=<PASSWORD | API_KEY>
+    ```
+
+5. **(Optional): Skip the step if a global Image Pull Secret (IPS) is configured for Zen images.** Create an image pull secret called `ibm-entitlement-key` for the cluster to be able to pull Zen images from the container registry.
+
+    ```
+    oc create secret docker-registry stg-key --docker-server=$ZEN_IMG_REG_HOST --docker-username=$ZEN_IMG_REG_USER --docker-password=$ZEN_IMG_REG_PASSWORD -n openshift-marketplace
+    oc secrets link default stg-key --for=pull -n openshift-marketplace
+    ```
+
+6. We currently need to add the below secret (with name `ibm-entitlement-key`) in the `ibm-common-services` namespace for Zen to install
+
+   ```
+   oc new-project ibm-common-services
+   oc create secret docker-registry ibm-entitlement-key --docker-server=$ZEN_IMG_REG_HOST --docker-username=$ZEN_IMG_REG_USER --docker-password=$ZEN_IMG_REG_PASSWORD -n ibm-common-services
+   ```
+  
+7. Add the `IBM Common Services` operators to the Openshift Operator Hub catalog
 
     ```sh
     cat <<EOF | oc apply -f -
@@ -95,9 +112,6 @@ Kubernetes Version: v1.19.0+d59ce34
       publisher: IBM
       sourceType: grpc
       image: docker.io/ibmcom/ibm-common-service-catalog:latest
-      updateStrategy:
-        registryPoll:
-          interval: 45m
     EOF
     ```
 
@@ -111,19 +125,19 @@ Kubernetes Version: v1.19.0+d59ce34
 4. Add the `Zen` operators to the Openshift Operator Hub catalog
 
     ```sh
-	cat <<EOF | oc apply -f -
-	apiVersion: operators.coreos.com/v1alpha1
-	kind: CatalogSource
-	metadata:
-	  name: ibm-cp-data-operator-catalog
-	  namespace: openshift-marketplace
-	spec:
-	  displayName: Cloud Pak for Data
-	  image: cp.stg.icr.io/cp/ibm-cp-data-operator-catalog:staging-latest
-	  publisher: IBM
-	  sourceType: grpc
-	  imagePullPolicy: Always
-	EOF
+    cat <<EOF | oc apply -f -
+    apiVersion: operators.coreos.com/v1alpha1
+    kind: CatalogSource
+    metadata:
+      name: ibm-cp-data-operator-catalog
+      namespace: openshift-marketplace
+    spec:
+      displayName: Cloud Pak for Data
+      image: cp.stg.icr.io/cp/ibm-cp-data-operator-catalog:staging-latest
+      publisher: IBM
+      sourceType: grpc
+      imagePullPolicy: Always
+    EOF
     ```
 
     **Verify:**  
@@ -133,7 +147,8 @@ Kubernetes Version: v1.19.0+d59ce34
     ibm-cp-data-operator-catalog-89fc5 1/1 Running 0 42s
     ```
 
-5. Add the `IBM Cloud Pak for Automation` operators to the Openshift Operator Hub catalog
+5. Add the `IBM Automation Foundation` operators to the Openshift Operator Hub catalog
+    
     **Note:** Consumers of ABP using the staging registry will use `image: cp.stg.icr.io/cp/abp-catalog:0.0.8` (where `0.0.8` is the sprint 8 driver tag)
 
     ```sh
@@ -148,9 +163,6 @@ Kubernetes Version: v1.19.0+d59ce34
       publisher: IBM
       sourceType: grpc
       image: us.icr.io/abp-builds/abp-catalog:latest
-      updateStrategy:
-        registryPoll:
-            interval: 45m
     EOF
     ```
 
@@ -160,8 +172,6 @@ Kubernetes Version: v1.19.0+d59ce34
     $ oc get pods -n openshift-marketplace | grep abp-operators  
     abp-operators-sz64q 1/1 Running 0 32s
     ```
-
-**Note:** Once Zen Operator CR is issued, setting of the Zen Dashboard takes close to 25 min to complete.
 
 ## Install `IBM Cloud Pak for Automation`
 
@@ -204,9 +214,6 @@ This can be done either via the `Red Hat Openshift Cluster Console` or by direct
 
 >**Note:** Once the `IBM Cloud Pak for Automation` is installed, can be configured for use through the API made available via [Custom Resources](https://pages.github.ibm.com/automation-base-pak/abp-playbook/cartridges/custom-resources)
 
->Refer the [Troubleshooting](TroubleShoot.md) section, to resolve the issues related to **ImagePullBackOff** error.
-
-
 ## Install `Demo Cartridge for IBM Cloud Pak for Automation`
 
 This can be done either via the `Red Hat Openshift Cluster Console` or by directly applying the corresponding Kubernetes resources using `oc apply`.
@@ -233,7 +240,7 @@ This can be done either via the `Red Hat Openshift Cluster Console` or by direct
     ```
     Red Hat Openshift Container Platform Cluster Administrator Console
       |_ Operators
-        |_ Intalled Operators
+        |_ Installed Operators
     ```
 
 - Run the below command for installing through CLI
@@ -254,25 +261,6 @@ spec:
 EOF
 ```
 
-## `Zen` specifics
-
-- Once the `ABP Operator` is installated, the OperandRegistry & OperandConfig have to be patched for `Zen`.
-
-	```
-	oc -n ibm-common-services patch opreg common-service --type='json' -p='[{"op": "add", "path": "/spec/operators/0", "value": {"channel": "v1.0", "name": "ibm-cp-data-operator", "namespace": "ibm-common-services", "packageName": "ibm-cp-data-operator", "scope": "public", "sourceName": "ibm-cp-data-operator-catalog", "sourceNamespace": "openshift-marketplace" } }]'
-	
-	oc -n ibm-common-services patch opcon common-service --type='json' -p='[{"op": "add", "path": "/spec/services/0", "value": {"name": "ibm-cp-data-operator", "spec": {}}}]'
-	```
-
-- After the `Cartridge CR` is issued, the Zen Operand (within `ibm-common-services` project) initialization is triggered. At this point, you see the ImgErrPull for Zen Operand (ibm-cp-data-operator). Please follow the below:
-
-	```
-  oc create secret docker-registry ibm-entitlement-key --docker-server=$ZEN_IMG_REG_HOST --docker-username=$ZEN_IMG_REG_USER --docker-password=$ZEN_IMG_REG_PASSWORD -n ibm-common-services
-	oc secrets link ibm-cp-data-operator-serviceaccount ibm-entitlement-key --for=pull -n ibm-common-services
-	
-  oc -n ibm-common-services delete $(oc get pod -n ibm-common-services -l app.kubernetes.io/managed-by=ibm-cp-data-operator,app.kubernetes.io/name=ibm-cp-data-operator -o name)
-	```
-
 ## Instance creation of `Demo Cartridge` aka Custom Resource
 
 - From the Openshift Console, follow the below navigation flow:
@@ -287,6 +275,12 @@ EOF
           |_ Create
   ```
 
+- Run the below command to apply the demo cartridge CR yaml. The `democartridge_v1_abpdemo.yaml` should be available under the `abp-deploy` folder. 
+
+  `oc apply -f democartridge_v1_abpdemo.yaml`
+
+**Note:** Zen is installed by default when the democartridge_v1_abpdemo.yaml is applied. To skip the Zen deployment, you can set `zen: false` to the CR `spec`.
+
   **Verify:** 
 
   ```
@@ -296,26 +290,6 @@ EOF
   abp-kafka-kafka-2         2/2     Running   0    110s
   ```
 
-- Wait for the pods to stand up. 
-
-    ```
-    $ oc get pods -n $ABP_PROJECT | grep kafka
-    ```
-
-- Link secret for `kafka-connect-cluster-connect` so that Image can be pulled.
-
-    ```
-    $ oc secrets link kafka-connect-cluster-connect ibm-entitlement-key --for=pull
-    ```
-
-- Delete `kafka-connect-cluster-connect` pod to restart with Secrets and Refresh Pods again. Change directory to `abp-deploy` and run 
-
-    ```
-    $ oc delete pod -l app.kubernetes.io/name=kafka-connect
-    $ oc get pods -n $ABP_PROJECT | grep kafka-connect-cluster-connect
-    kafka-connect-cluster-connect-69fbd5c4b8-blq5t    1/1    Running   0   118
-    ```
-
 ## User Interface of `IBM Cloud Pak for Automation`
 
   ```
@@ -323,6 +297,19 @@ EOF
   ```
   
   and proceed to the `abp-ui-route`/basepakui in your browser. 
+
+
+## Zen Service & dashboard
+
+Zen Operator (CloudPak for Data Operator) gets installed within the `ibm-common-services` namespace. It takes close to 15 minutes for a complete deployment of Zen service.
+
+a. [OPTIONAL] Run the following command to check the status of the Zen Service deployment. The Ready status confirms the succes of zen service deployment.
+
+  ```
+  oc get cpdservice -n ibm-common-services abp-zen-cpdservice --output="jsonpath={.status} {'\n'} "
+  ```
+b. Under `ibm-common-services` project, go to **Networking > Routes** to reach the zen dashboard url. 
+
 
 ## Install Open Data Hub Operator
 
@@ -497,9 +484,20 @@ EOF
     - Go to CatalogSource, under Instances delete **abp-operators** (may be called abp-catalog) and **opencloud-operators**
     - Back on the CRDs page delete **ABPDemo** and **AutomationBase** Custom Resource Definitions.
 
-4.  Delete your **Namespace/Project**
+4.  Run the following commands to delete all the zen resources from the `ibm-common-services` namespace.
 
-5.  Delete **ibm-entitlement-key** secret from the **openshift-marketplace** namespace
+	```
+	oc delete deploy cpd-install-operator dsx-influxdb ibm-nginx icpd-till meta-api-deploy secretshare usermgmt zen-audit zen-core zen-core-api zen-watchdog zen-data-sorcerer zen-watchdog zen-watcher -n ibm-common-services
+
+	oc delete cronjob diagnostics-cronjob usermgmt-ldap-sync-cron-job watchdog-alert-monitoring-cronjob watchdog-alert-monitoring-purge-cronjob zen-watchdog-cronjob -n ibm-common-services
+
+	oc delete statefulset zen-metastoredb  -n ibm-common-services
+
+	```
+
+5. Delete your **Namespace/Project**
+
+6.  Delete **ibm-entitlement-key** secret from the **openshift-marketplace** namespace
 
 **Note:** Before you can install again using install-demo.sh please change your environment variables 
 `ABPDEMO_PROJECT`, `TMPDIR` which are used by the script. Failing to change these may result in older environments being stood up. 
@@ -507,3 +505,23 @@ EOF
 ### Uninstall/Clean Up Script
 
 A cluster previously having run the BasePak Demo, can now clean up using a script. See [here](https://github.ibm.com/automation-base-pak/cloudpak-svt-cluster-tools/blob/main/scripts/abp_cleanup.sh).
+
+## Build and push images to the registry on Openshift Cluster
+
+To build and push images locally during development, you may need to do the following (replacing `<cluster_name>` with the name of your cluster):
+
+- Add the host information to your `/etc/hosts` file
+
+  ```
+  <cluster_ip>  console-openshift-console.apps.<cluster_name>.cp.fyre.ibm.com api.<cluster_name>.cp.fyre.ibm.com <cluster_name>.cp.fyre.ibm.com cp-console.apps.<cluster_name>.cp.fyre.ibm.com oauth-openshift.apps.<cluster_name>.cp.fyre.ibm.com
+  ```
+  
+You can obtain the `<cluster_ip>` via `ping https://console-openshift-console.apps.<cluster_name>.cp.fyre.ibm.com`
+
+- Update your insecure registries under Docker Engine in your Docker preferences
+
+  ```
+  "insecure-registries": [
+    "default-route-openshift-image-registry.apps.<cluster_name>.cp.fyre.ibm.com"
+  ]
+  ```
