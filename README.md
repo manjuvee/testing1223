@@ -177,7 +177,7 @@ Alternatively, you can try the [install-demo.sh](install-demo.sh) script. The sc
     ```
 
 
-6. Add the `Zen` operators to the Openshift Operator Hub catalog
+6. Add the `IBM Redis Operator` operators to the Openshift Operator Hub catalog
 
     ```sh
     cat <<EOF | oc apply -f -
